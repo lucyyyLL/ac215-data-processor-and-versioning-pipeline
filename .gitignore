@@ -1,0 +1,65 @@
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Virtual Environments
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# Environment Variables & Secrets
+# =========================
+.env
+.env.*
+!.env.example
+secrets/
+**/secrets/
+*.key
+*service-account*.json
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Local Data & GCS Mounts
+# =========================
+data/
+data-versioning/greenpath_dataset/
+greenpath_dataset/
+mnt/gcs_data/
+
+# =========================
+# DVC Local Cache & Temporary Files
+# =========================
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+
+# =========================
+# Logs & Temporary Files
+# =========================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# =========================
+# OS & Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

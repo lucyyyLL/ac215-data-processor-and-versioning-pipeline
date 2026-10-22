@@ -63,4 +63,5 @@ COPY --chown=app:app . ./
 
 # Entry point
 #ENTRYPOINT ["pipenv","shell"]
-ENTRYPOINT ["/bin/bash","./docker-entrypoint.sh"]
+#ENTRYPOINT ["/bin/bash","./docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash","/app/data-versioning/docker-entrypoint.sh"]

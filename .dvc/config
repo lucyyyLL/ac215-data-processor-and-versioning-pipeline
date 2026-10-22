@@ -1,0 +1,6 @@
+[core]
+    remote = greenpath_dataset
+['remote "cheese_dataset"']
+    url = gs://ac215-final-project-test2/dvc_store
+['remote "greenpath_dataset"']
+    url = gs://ac215-final-project-test2/dvc_store

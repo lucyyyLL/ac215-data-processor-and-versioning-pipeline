@@ -2,8 +2,9 @@
 
 set -e
 
-export BASE_DIR=$(pwd)
-export SECRETS_DIR=$(pwd)/../secrets/
+# export BASE_DIR=$(pwd)
+export BASE_DIR="$(git rev-parse --show-toplevel)"
+export SECRETS_DIR=$(pwd)/../../secrets/
 export GCS_BUCKET_NAME="ac215-final-project-test2"
 export GCP_PROJECT="extended-web-508017-j2"
 export GCP_ZONE="us-central1-a"

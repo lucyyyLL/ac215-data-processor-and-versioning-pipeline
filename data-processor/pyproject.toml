@@ -4,5 +4,19 @@ version = "0.1.0"
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "pyyaml>=6.0",
-    "google-cloud-storage>=3.0",
+    "h3>=4,<5",
+    "requests>=2.32",
+    "mapbox-vector-tile>=2,<3",
+    "mercantile>=1.2",
+    "numpy>=1.26",
+    "pandas>=2.2,<3",
+    "pyarrow>=18",
+    "pystac-client>=0.8",
+    "planetary-computer>=1.0",
+    "rasterio>=1.4",
+    "pyproj>=3.6",
+    "shapely>=2",
+    "pillow>=10",
+    "geopandas>=1.0",
+    "pyrosm>=0.6.2",
 ]

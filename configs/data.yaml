@@ -1,50 +1,21 @@
-# Proposed Python configuration interface; notebooks do not consume this yet.
+# Green Path collection settings. Storage authentication and mounting are handled by Docker.
 storage:
-  backend: gcs
-  bucket: "${GCS_BUCKET_NAME}"
-  project_id: "${GCP_PROJECT}"
-  authentication: application_default_credentials
   datasets_prefix: datasets
-  dvc_remote_prefix: dvc_store
-  dataset_root_template: "gs://${GCS_BUCKET_NAME}/datasets/{city}"
-  dvc_remote_uri: "gs://${GCS_BUCKET_NAME}/dvc_store"
-  paths_relative_to: city_dataset_root
-  persistent_local_dataset: false
-  ephemeral_scratch_allowed: true  # pyrosm requires a local PBF.
-
-run:
-  id: "${GREENPATH_RUN_ID}"
-  convention: "{utc_timestamp}_{uuid4_hex}"
-  utc_timestamp_format: "%Y%m%dT%H%M%SZ"
-  id_regex: '^[0-9]{8}T[0-9]{6}Z_[0-9a-f]{32}$'
-  scope: provenance_only
-  history_key: run_id
-  overwrite_completed_history_rows: false
-  publish_manifest_last: true
-
 city:
   name: boston
   prefix: BOS
   bbox: [-71.13, 42.33, -71.03, 42.39]
-  bbox_order: [min_lon, min_lat, max_lon, max_lat]
-  crs: "EPSG:4326"
 spatial:
-  h3_resolution: 10  # Fixed standard
-  cell_id_template: "{city_prefix}_{h3_index}"
-  grid_method: polygon_to_cells
-
+  h3_resolution: 10
+  cell_id_template: '{city_prefix}_{h3_index}'
 mapillary:
-  token_env: MAPILLARY_TOKEN
   metadata:
-    method: public_vector_tiles
-    url_template: "https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}"
+    url_template: https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}
     layer: image
     tile_zoom: 14
-    deduplicate_by: image_id
-  graph_api: "https://graph.mapillary.com"
+  graph_api: https://graph.mapillary.com
   filters:
-    bbox_inclusive: true
-    min_quality: 0.0  # 0 disables quality filtering.
+    min_quality: 0.0
     min_year: 2019
     exclude_months: [12, 1, 2, 3]
     allow_pano: false
@@ -53,23 +24,20 @@ mapillary:
     min_images_per_cell: 2
     max_images_per_cell: 4
     quadrant_degrees: 90
-    selection: newest_per_quadrant_then_newest_remaining
-    sample_size: 0  # All eligible cells.
+    sample_size: 0
     seed: 42
   images:
     download: true
     workers: 8
     thumbnail_field: thumb_1024_url
-    exact_dimensions_px: null  # Not enforced by notebook; preserve API bytes.
-    filename_template: "{image_id}.jpg"
-  retain_failed_image_rows_in_surviving_cells: true  # Current behavior.
-
 naip:
   ground_m: 154
   tile_px: 256
   resampling: bilinear
   tile_set_version: v1
-  source_snapshot_id: null  # Required: immutable, coverage-independent source release/selection contract.
+  source_snapshot_id: null
+  # Legacy identity inputs: retain values to preserve existing Tile Set folder names.
+  # These declarations do not implement a snapshot registry or provenance service.
   source_snapshot_definition:
     required_fields: [provider, collection, pinned_release_or_catalog_cutoff, immutable_asset_version_policy]
     moving_latest_is_valid: false
@@ -81,85 +49,62 @@ naip:
     extension_rule: add_only_new_cells_from_same_pinned_source_contract
     existing_cell_source_change: new_snapshot_identity_and_tile_set
     unavailable_reproducible_release_policy: require_frozen_catalog_and_versioned_assets
-    # A growing assignment inventory is not an immutable snapshot definition.
-    # Its digest changes with coverage; the pinned release/selection contract does not.
   processing_algorithm_version: notebook02_v1
-  effective_dependency_versions: null  # Required versions affecting pixel results.
+  # Installed library versions participate only in the existing Tile Set hash recipe.
+  effective_dependency_versions: null
   tile_set_identity:
-    id_template: "naip_{ground_m}m_{tile_px}px_{tile_set_version}_{config_hash12}"
-    hash_algorithm: sha256
-    canonicalization: sorted_compact_utf8_json_normalized_numbers
+    id_template: naip_{ground_m}m_{tile_px}px_{tile_set_version}_{config_hash12}
     hash_prefix_length: 12
-    persist_full_hash: true
-    reject_short_hash_collisions: true
     effective_config_fields:
-      - spatial.h3_resolution
-      - naip.ground_m
-      - naip.tile_px
-      - naip.resampling
-      - naip.tile_set_version
-      - naip.source_snapshot_id
-      - naip.source_snapshot_definition
-      - naip.processing_algorithm_version
-      - naip.effective_dependency_versions
-      - naip.stac_api
-      - naip.collection
-      - naip.asset
-      - naip.min_year
-      - naip.search_end
-      - naip.selection
-      - naip.tile.bands
-      - naip.tile.dtype
-      - naip.tile.format
-      - naip.tile.encoder_options
-      - naip.tile.boundless
-      - naip.tile.fill_value
-      - naip.tile.nodata_definition
-      - naip.tile.max_nodata_fraction
-    excluded_from_hash: [city_coverage, cell_list, run_id, workers, storage_paths, assignment_inventory_digest]
-    reuse_requires: [config_sha256, source_snapshot_id, source_asset_identity, source_asset_checksum, tile_sha256, object_exists]
-    source_change_policy: new_source_snapshot_and_tile_set
-    same_config_new_areas_policy: add_missing_tiles
-    existing_object_write_policy: conditional_create_or_verify
-  stac_api: "https://planetarycomputer.microsoft.com/api/stac/v1"
+    - spatial.h3_resolution
+    - naip.ground_m
+    - naip.tile_px
+    - naip.resampling
+    - naip.tile_set_version
+    - naip.source_snapshot_id
+    - naip.source_snapshot_definition
+    - naip.processing_algorithm_version
+    - naip.effective_dependency_versions
+    - naip.stac_api
+    - naip.collection
+    - naip.asset
+    - naip.min_year
+    - naip.search_end
+    - naip.selection
+    - naip.tile.bands
+    - naip.tile.dtype
+    - naip.tile.format
+    - naip.tile.encoder_options
+    - naip.tile.boundless
+    - naip.tile.fill_value
+    - naip.tile.nodata_definition
+    - naip.tile.max_nodata_fraction
+  stac_api: https://planetarycomputer.microsoft.com/api/stac/v1
   collection: naip
   asset: image
   min_year: 2018
-  search_end: "2100-01-01"
+  search_end: '2100-01-01'
   search_bbox_pad_degrees: 0.005
   selection:
     coverage_preference: full_approximate_footprint_then_center
     order_descending: [naip_year, item_datetime]
     mosaic: false
   tile:
-    # Square dimensions derive from naip.tile_px and naip.ground_m.
     bands: [1, 2, 3]
     dtype: uint8
     format: PNG
-    encoder_options: {}  # Effective defaults/dependency versions enter the hash.
+    encoder_options: {}
     boundless: true
     fill_value: 0
     nodata_definition: rgb_sum_equals_zero
     max_nodata_fraction: 0.05
-    filename_template: "{cell_id}.png"
-  preview_seed: 42
-
 features:
+  processing_version: osm_worldcover_v2
   ground_m: 154
-  footprint: square_centered_on_h3_center
-  metric_crs: estimate_utm_crs
-  require_tile_ok_if_present: true
-  eligibility_tile_set_id: null  # Explicit resolved Tile Set required for filtering.
-  footprint_independent_of_naip_tile_set: true
   osm:
-    provider: geofabrik
-    pbf_url: "https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf"
-    snapshot_identity: full_content_sha256
-    snapshot_filename_template: "{osm_region}_{osm_snapshot_sha256}.osm.pbf"
-    region: massachusetts  # Other cities must supply their regional extract.
-    snapshot_metadata_fields: [source_url, source_date, downloaded_at, sha256, size_bytes]
-    existing_snapshot_policy: preserve_and_verify
-    parser: pyrosm
+    pbf_url: https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf
+    snapshot_path: null
+    region: massachusetts
     bbox_pad_degrees: 0.004
     network_type: all
     intersection_min_degree: 3
@@ -169,8 +114,8 @@ features:
       secondary: [secondary, secondary_link, tertiary, tertiary_link]
       local: [residential, unclassified, living_street, service]
       path: [cycleway, footway, path, pedestrian, track, steps, bridleway]
-    bike_tags: [cycleway, "cycleway:left", "cycleway:right", "cycleway:both"]
-    bike_excluded_values: ["no", "none", separate]
+    bike_tags: [cycleway, 'cycleway:left', 'cycleway:right', 'cycleway:both']
+    bike_accepted_values: [lane, opposite_lane, track, opposite_track]
     polygon_filters:
       water:
         natural: [water, wetland]
@@ -182,18 +127,13 @@ features:
         natural: [wood, scrub, grassland]
       buildings:
         building: true
-    maxspeed_unit_conversion: false  # Existing numeric-token parsing only.
-    preserve_pbf_in_gcs: true  # Proposed; current GCS mode keeps PBF locally.
   worldcover:
-    stac_api: "https://planetarycomputer.microsoft.com/api/stac/v1"
+    stac_api: https://planetarycomputer.microsoft.com/api/stac/v1
     collection: esa-worldcover
     year: 2021
-    product_version: v200  # Notebook attribution; verify against actual STAC item.
+    product_version: v200
     asset: map
-    window_method: geographic_bounds_of_metric_square
-    polygon_mask: false
-    exclude_nodata_from_denominator: false
-    dominant_class_status: requires_verification_of_existing_pixel_index_expression
+    nodata_value: 0
     classes:
       10: tree
       20: shrub
@@ -206,68 +146,14 @@ features:
       90: wetland
       95: mangrove
       100: moss
-
-outputs:  # Relative to dataset_root_template after expansion.
-  mapillary_metadata: "raw/mapillary/metadata/tile_z{z}_{x}_{y}.parquet"
-  streetview_images: "raw/mapillary/images/{image_id}.jpg"
-  osm_pbf: "raw/osm/{osm_region}_{osm_snapshot_sha256}.osm.pbf"
-  osm_download_metadata: "raw/osm/{osm_region}_{osm_snapshot_sha256}.osm.pbf.meta.json"
+outputs:
+  mapillary_metadata: raw/mapillary/metadata/tile_z{z}_{x}_{y}.parquet
+  streetview_images: raw/mapillary/images/{image_id}.jpg
+  osm_pbf: raw/osm/{osm_region}_{osm_snapshot_sha256}.osm.pbf
+  osm_download_metadata: raw/osm/{osm_region}_{osm_snapshot_sha256}.osm.pbf.meta.json
   grid: interim/grid.parquet
   cells: interim/cells.parquet
   streetview: interim/streetview.parquet
-  naip_images: "processed/tiles/{tile_set_id}/{cell_id}.png"
-  naip_tiles: processed/naip_tiles.parquet  # Proposed split from cells.
+  naip_images: processed/tiles/{tile_set_id}/{cell_id}.png
+  naip_tiles: processed/naip_tiles.parquet
   osm_features: processed/osm_features.parquet
-  streetview_scores: processed/labels/streetview_scores.parquet  # Future.
-  cell_scores: processed/labels/cell_scores.parquet  # Future.
-  dataset: processed/dataset.parquet  # Future.
-  collection_history: collection_history.parquet
-  manifest: manifest.json
-
-labels:  # Future stage; null values are unestablished placeholders.
-  enabled: false
-  label_run_id: null
-  model_id: null
-  model_version: null
-  rubric_version: null
-  attributes: null
-  score_range: null
-  generation_parameters: null
-  aggregation_method: null
-  min_scored_images_per_cell: null
-  missing_score_policy: null
-  training_split_policy: null
-
-training:  # Future assembly selects one Tile Set; no implicit cross-product.
-  selected_tile_set_id: null
-  selected_label_run_id: null
-  scoring_model_id: null
-  scoring_model_version: null
-  feature_snapshot: null
-  source_dataset_version: null
-
-provenance:
-  manifest_schema_version: 3
-  collection_history:
-    row_granularity: acquisition_attempt
-    primary_key: run_id
-    required_fields: [run_id, started_at, finished_at, status, city, spatial_coverage, config_sha256, resolved_parameters, code_version, source_references, tile_set_ids, output_references, counts, errors]
-    append_only_completed_records: true
-  manifest:
-    scope: current_published_city_state
-    required_fields: [schema_version, dataset_root_uri, city, city_prefix, published_at, publication_run_id, data_versions, config, sources, tile_sets, artifacts, collection_history, label_runs, training_selection, validation]
-    artifact_identity_fields: [path, generation, sha256, size_bytes]
-    source_inventory: naip_index_with_digest
-    retain_resolved_config_without_secrets: true
-    historical_versions: dvc
-  incremental:
-    reuse_valid_existing_assets: true
-    redownload_only_missing_or_invalid_assets: true
-    merge_naip_index_key: [cell_id, tile_set_id]
-    serialize_metadata_publication: true
-    conditional_object_creation: true
-  checksum_algorithm: sha256
-  record_gcs_generation: true
-  record_gcs_crc32c: true
-  record_source_item_ids: true
-  record_resolved_parameters_without_secrets: true

@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# read mapillary token from secrets file
+export MAPILLARY_TOKEN="$(cat /secrets/mapillary_token.txt)"
+
 gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
 mkdir -p /mnt/gcs_data
 gcsfuse \

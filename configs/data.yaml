@@ -1,13 +1,13 @@
 # Proposed Python configuration interface; notebooks do not consume this yet.
 storage:
   backend: gcs
-  bucket: "${GREENPATH_GCS_BUCKET}"
-  project_id: "${GOOGLE_CLOUD_PROJECT}"
+  bucket: "${GCS_BUCKET_NAME}"
+  project_id: "${GCP_PROJECT}"
   authentication: application_default_credentials
   datasets_prefix: datasets
-  dvc_remote_prefix: dvc-store
-  dataset_root_template: "gs://${GREENPATH_GCS_BUCKET}/datasets/{city}"
-  dvc_remote_uri: "gs://${GREENPATH_GCS_BUCKET}/dvc-store"
+  dvc_remote_prefix: dvc_store
+  dataset_root_template: "gs://${GCS_BUCKET_NAME}/datasets/{city}"
+  dvc_remote_uri: "gs://${GCS_BUCKET_NAME}/dvc_store"
   paths_relative_to: city_dataset_root
   persistent_local_dataset: false
   ephemeral_scratch_allowed: true  # pyrosm requires a local PBF.

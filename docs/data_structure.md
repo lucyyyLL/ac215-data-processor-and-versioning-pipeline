@@ -30,7 +30,7 @@ gs://<bucket>/
 |   |   +-- collection_history.parquet
 |   |   +-- manifest.json
 |   +-- new_york/... (same layout)
-+-- dvc-store/
++-- dvc_store/
 ```
 
 `raw` preserves sources, `interim` holds selected cells/images, and `processed` holds crops, features and future labels/training data.

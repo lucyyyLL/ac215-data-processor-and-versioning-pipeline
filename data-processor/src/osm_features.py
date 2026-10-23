@@ -21,6 +21,7 @@ import requests
 from shapely.geometry import Point, shape
 
 from src.config import CONFIG_PATH, get_dataset_root, load_config
+from src.storage import save_parquet
 
 
 def get_osm_snapshot(config, root, previous):
@@ -236,8 +237,7 @@ def collect(config, root):
     fresh["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     combined = fresh if old.empty else pd.concat([old, fresh], ignore_index=True)
     combined = combined.drop_duplicates("cell_id", keep="last").sort_values("cell_id").reset_index(drop=True)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    combined.to_parquet(output, index=False)
+    save_parquet(combined, output)
     metadata["worldcover_items"] = sorted(set(source_items if compatible else []) |
                                         {item.id for item in assignments.values() if item is not None})
     metadata_path.write_text(json.dumps(metadata, indent=2))

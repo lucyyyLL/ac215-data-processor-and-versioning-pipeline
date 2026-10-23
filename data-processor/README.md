@@ -1,7 +1,7 @@
 # Green Path Data Processor
 
-Collects Mapillary streetview metadata and JPG images, assigns them to H3 R10
-cells, and selects up to four images per cell using heading diversity and recency.
+Collects Mapillary streetview images and H3 R10 cells, crops NAIP satellite
+imagery, and extracts OSM/WorldCover features for those cells.
 Settings come from the repository's `configs/data.yaml`.
 
 ## Start the container
@@ -22,6 +22,31 @@ The Docker build installs locked dependencies using `uv sync --frozen`.
 The entrypoint loads `MAPILLARY_TOKEN`, authenticates with the service account,
 mounts the configured bucket at `/mnt/gcs_data`, and activates the Python environment.
 Files written under this mount are stored in GCS.
+
+## Run the unified pipeline
+
+Inside the container, from `/app/data-processor`:
+
+```bash
+python -m src.main                         # All stages, production
+python -m src.main --test --sample-size 5   # All stages, test dataset
+python -m src.main --test --steps naip osm  # Existing test cells
+python -m src.main --test --steps naip      # NAIP only
+```
+
+Stages always run in Streetview → NAIP → OSM order, regardless of argument order.
+All selected stages share the same city root from `configs/data.yaml`:
+`/mnt/gcs_data/datasets/<city>/`, or `datasets/_test/<city>/` with `--test`.
+An error stops the pipeline. NAIP and OSM require existing `interim/cells.parquet`
+when Streetview is skipped. A five-cell sample limits Streetview's selection;
+NAIP and OSM process all cells already stored in the selected dataset.
+
+`--config` selects another YAML file and `--dataset-root` selects a custom root.
+`--bbox WEST SOUTH EAST NORTH` and `--sample-size` apply only to Streetview.
+As with its independent CLI, either Streetview override defaults the whole
+pipeline to test storage and rejects the production root. `--test` also rejects
+an explicit production root. Without Streetview, bbox/sample overrides are ignored.
+Only runs including Streetview read `MAPILLARY_TOKEN`.
 
 ## Run streetview collection
 
@@ -131,8 +156,10 @@ ls /mnt/gcs_data/datasets/_test/boston/raw/mapillary/images/
 python -c "import pandas as pd; print(pd.read_parquet('/mnt/gcs_data/datasets/_test/boston/interim/cells.parquet').head())"
 ```
 
-`src/config.py` handles YAML loading and dataset roots; `src/streetview.py` and
-`src/naip.py` implement their respective collection CLIs. `main.py` and `storage.py` are currently empty.
+`src/main.py` calls the selected collectors; each module also retains its own CLI.
+`src/config.py` handles YAML loading and dataset roots. `src/storage.py` shares
+optional Parquet reads and directory creation plus Parquet writes; incremental
+merges and source handling stay inside each processor.
 Labeling, collection-history/manifest publication and DVC integration
 are not implemented in this module yet.
 

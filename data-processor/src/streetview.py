@@ -16,6 +16,7 @@ import pandas as pd
 import requests
 
 from src.config import CONFIG_PATH, get_dataset_root, load_config
+from src.storage import read_existing_parquet, save_parquet
 
 
 META_COLS = ["image_id", "lon", "lat", "captured_at_ms", "compass_raw",
@@ -89,8 +90,7 @@ def collect_metadata(config, root, bbox, token):
         content = request_bytes(settings["url_template"].format(**coords),
                                 {"access_token": token}, timeout=180, vector=True)
         frame = decode_tile(content, tile, settings["layer"]).drop_duplicates("image_id")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        frame.to_parquet(target, index=False)
+        save_parquet(frame, target)
         parts.append(frame)
     return pd.concat(parts, ignore_index=True).drop_duplicates("image_id") if parts else pd.DataFrame(columns=META_COLS)
 
@@ -198,8 +198,8 @@ def collect(config, root, bbox, sample_size, token):
     filtered = filter_metadata(raw, bbox, config)
     grid = build_grid(bbox, config)
 
-    old_sv = pd.read_parquet(root / outputs["streetview"]) if (root / outputs["streetview"]).exists() else pd.DataFrame(columns=SV_COLS)
-    old_cells = pd.read_parquet(root / outputs["cells"]) if (root / outputs["cells"]).exists() else pd.DataFrame(columns=GRID_COLS)
+    old_sv = read_existing_parquet(root / outputs["streetview"], SV_COLS)
+    old_cells = read_existing_parquet(root / outputs["cells"], GRID_COLS)
     # Include previous selected images in overlapping cells, even outside this bbox.
     previous = old_sv[old_sv.h3_index.isin(grid.h3_index)]
     candidates = filtered if previous.empty else pd.concat([previous, filtered], ignore_index=True)
@@ -231,9 +231,7 @@ def collect(config, root, bbox, sample_size, token):
     if grid_path.exists():
         grid = pd.concat([pd.read_parquet(grid_path), grid], ignore_index=True).drop_duplicates("cell_id", keep="last")
     for name, frame in [("grid", grid), ("cells", cells), ("streetview", sv)]:
-        target = root / outputs[name]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        frame.to_parquet(target, index=False)
+        save_parquet(frame, root / outputs[name])
     print(f"{root}: {len(grid)} grid cells, {len(cells)} retained cells, {len(sv)} image records")
     return grid, cells, sv
 

@@ -21,6 +21,7 @@ from rasterio.windows import Window
 from shapely.geometry import Point, box, shape
 
 from src.config import CONFIG_PATH, get_dataset_root, load_config
+from src.storage import read_existing_parquet, save_parquet
 
 
 GDAL_ENV = dict(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="3",
@@ -154,7 +155,7 @@ def collect(config, root):
     cells = pd.read_parquet(root / outputs["cells"])
     tile_set_id, config_hash = get_tile_set(config)
     index_path = root / outputs["naip_tiles"]
-    old = pd.read_parquet(index_path) if index_path.exists() else pd.DataFrame(columns=COLUMNS)
+    old = read_existing_parquet(index_path, COLUMNS)
     existing = old[old.tile_set_id == tile_set_id].set_index("cell_id")
     if not existing.empty and existing.config_sha256.iloc[0] != config_hash:
         raise ValueError("Tile Set hash collision: choose a different tile_set_version")
@@ -180,8 +181,7 @@ def collect(config, root):
     fresh["source_asset_checksum"] = fresh.source_asset_checksum.astype("string")
     combined = fresh if old.empty else pd.concat([old, fresh], ignore_index=True)
     combined = combined.drop_duplicates(KEY, keep="last").sort_values(KEY).reset_index(drop=True)
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    combined.to_parquet(index_path, index=False)
+    save_parquet(combined, index_path)
     print(f"{root}: {tile_set_id}, {len(reusable)} reused, {int(fresh.tile_ok.sum())}/{len(fresh)} new usable tiles")
     return combined
 
